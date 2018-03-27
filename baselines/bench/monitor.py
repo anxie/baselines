@@ -93,6 +93,12 @@ class Monitor(Wrapper):
     def get_episode_times(self):
         return self.episode_times
 
+    def next(self):
+        self.env.next()
+
+    def get_image(self):
+        return self.env.get_image()
+
 class LoadMonitorResultsError(Exception):
     pass
 

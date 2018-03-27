@@ -4,14 +4,15 @@ from baselines.common.cmd_util import make_mujoco_env, mujoco_arg_parser
 from baselines.common import tf_util as U
 from baselines import logger
 
-def train(env_id, num_timesteps, seed):
+def train(env_id, num_timesteps, seed, save_dir):
     from baselines.ppo1 import mlp_policy, pposgd_simple
-    U.make_session(num_cpu=1).__enter__()
+    sess = U.make_session(num_cpu=1)
+    sess.__enter__()
     def policy_fn(name, ob_space, ac_space):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
             hid_size=64, num_hid_layers=2)
     env = make_mujoco_env(env_id, seed)
-    pposgd_simple.learn(env, policy_fn,
+    pposgd_simple.learn(env, policy_fn, sess, save_dir,
             max_timesteps=num_timesteps,
             timesteps_per_actorbatch=2048,
             clip_param=0.2, entcoeff=0.0,
@@ -22,8 +23,13 @@ def train(env_id, num_timesteps, seed):
 
 def main():
     args = mujoco_arg_parser().parse_args()
+
+    import os
+    save_dir = '/home/annie/meta_assembly/data_generator/ppo/models/'
+    os.makedirs(save_dir, exist_ok=True)
+
     logger.configure()
-    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed)
+    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, save_dir=save_dir)
 
 if __name__ == '__main__':
     main()

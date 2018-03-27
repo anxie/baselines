@@ -63,6 +63,7 @@ def traj_segment_generator(pi, env, horizon, stochastic):
             ep_lens.append(cur_ep_len)
             cur_ep_ret = 0
             cur_ep_len = 0
+            env.next()
             ob = env.reset()
         t += 1
 
@@ -79,7 +80,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
-def learn(env, policy_fn, *,
+def learn(env, policy_fn, sess, save_dir, *,
         timesteps_per_batch, # what to train on
         max_kl, cg_iters,
         gamma, lam, # advantage estimation
@@ -101,6 +102,8 @@ def learn(env, policy_fn, *,
     oldpi = policy_fn("oldpi", ob_space, ac_space)
     atarg = tf.placeholder(dtype=tf.float32, shape=[None]) # Target advantage function (if applicable)
     ret = tf.placeholder(dtype=tf.float32, shape=[None]) # Empirical return
+
+    saver = tf.train.Saver(pi.get_variables(), max_to_keep=0)
 
     ob = U.get_placeholder_cached(name="ob")
     ac = pi.pdtype.sample_placeholder([None])
@@ -286,6 +289,11 @@ def learn(env, policy_fn, *,
 
         if rank==0:
             logger.dump_tabular()
+
+        if iters_so_far % 10 == 0:
+            saver.save(sess, save_dir + 'model' + str(iters_so_far))
+
+    saver.save(sess, save_dir + 'model')
 
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]
